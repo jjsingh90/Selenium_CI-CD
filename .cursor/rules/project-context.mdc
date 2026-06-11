@@ -53,6 +53,12 @@ Suites: `SmokeTestingSuite` (smoke group), `FullRegressionSuite` (login + except
 
 TestNG groups: `smoke`, `positive`, `negative`, `regression`. Negative login tests receive `username`, `password`, `expectedErrorMessage` via suite XML parameters.
 
+## Chrome DevTools MCP
+
+Configured in `.cursor/mcp.json` for opening and inspecting pages during development. Use it to navigate to target URLs, inspect DOM/locators, capture screenshots, and debug before writing page objects.
+
+Target site: `https://practicetestautomation.com`
+
 ## Conventions for changes
 
 - New pages → `baseobjects/`, extend `BasePage`, constructor calls `super(driver)`.
