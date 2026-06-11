@@ -1,0 +1,61 @@
+---
+description: SeleniumForBeginnners project overview and conventions
+alwaysApply: true
+---
+
+# SeleniumForBeginnners
+
+Beginner Selenium WebDriver automation project targeting [practicetestautomation.com](https://practicetestautomation.com). Uses Page Object Model (POM) with TestNG.
+
+## Stack
+
+- Java 21, Maven
+- Selenium Java 4.38.0
+- TestNG 7.11.0
+- Browsers: Chrome (default), Firefox, Chrome headless (`chromeheadless`)
+
+## Layout
+
+```
+src/main/java/com/practicetestautomation/baseobjects/   # Page objects
+src/test/java/com/practicetestautomation/tests/         # Tests + BaseTest
+src/test/resources/TestSuites/                          # TestNG XML suites
+```
+
+## Patterns
+
+- **BasePage** — shared `WebDriver`/`WebDriverWait` (10s), `visit()`, visibility/hidden helpers. All page objects extend it.
+- **BaseTest** — `@BeforeMethod` creates driver from `@Parameters("browser")`; `@AfterMethod` quits. All test classes extend it.
+- Page objects hold `By` locators privately; expose action methods. Login flow returns next page object (e.g. `executeLogin()` → `SuccessfulLoginPage`).
+- Tests use `java.util.logging.Logger` via `logger` from `BaseTest`.
+
+## Page objects & target URLs
+
+| Class | URL path |
+|-------|----------|
+| `LoginPage` | `/practice-test-login/` |
+| `SuccessfulLoginPage` | post-login success page |
+| `ExceptionPage` | `/practice-test-exceptions/` |
+
+Valid login: `student` / `Password123`.
+
+## Running tests
+
+Default suite: `FullRegressionSuite.xml` (set in `pom.xml`).
+
+```bash
+mvn test
+mvn test -DsuiteXmlFile=SmokeTestingSuite.xml
+mvn test -DsuiteXmlFile=DebugSuite.xml
+```
+
+Suites: `SmokeTestingSuite` (smoke group), `FullRegressionSuite` (login + exceptions, multi-browser), `DebugSuite` (single-method runs).
+
+TestNG groups: `smoke`, `positive`, `negative`, `regression`. Negative login tests receive `username`, `password`, `expectedErrorMessage` via suite XML parameters.
+
+## Conventions for changes
+
+- New pages → `baseobjects/`, extend `BasePage`, constructor calls `super(driver)`.
+- New tests → `tests/<feature>/`, extend `BaseTest`, register in a suite XML.
+- Keep locator strings in page objects, not in tests.
+- Match existing style: minimal abstraction, no extra frameworks (no WebDriverManager, no Allure, no Cucumber).
