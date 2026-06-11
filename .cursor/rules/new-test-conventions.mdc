@@ -1,0 +1,111 @@
+---
+description: Conventions for writing new Selenium TestNG tests and suite XML
+globs: src/test/**/*.java,src/test/resources/TestSuites/**/*.xml
+alwaysApply: false
+---
+
+# Creating New Tests
+
+Apply these patterns when adding or editing tests. See `project-context.mdc` for stack, layout, and page URLs.
+
+## Test class structure
+
+- Place feature tests in `src/test/java/com/practicetestautomation/tests/<feature>/` (e.g. `login/LoginTests.java`).
+- Extend `BaseTest`; use inherited `driver` and `logger`.
+- One test class per feature/page area; name it `<Feature>Tests`.
+
+```java
+public class LoginTests extends BaseTest {
+
+    @Test(groups = {"positive", "regression", "smoke"})
+    public void testloginFunctionality() {
+        logger.info("Starting testloginFunctionality");
+        // ...
+    }
+}
+```
+
+## Test method flow
+
+1. Log start with `logger.info("Starting <methodName>")`.
+2. Instantiate the page object: `new SomePage(driver)`.
+3. Navigate: `page.visit()`.
+4. Perform actions via page object methods only — never `driver.findElement()` or `By` locators in tests.
+5. Assert outcomes with TestNG `Assert` (`assertEquals`, `assertTrue`). Add a message string on non-obvious assertions.
+
+**Multi-page flows:** when a page action navigates to another page, capture the returned page object (e.g. `SuccessfulLoginPage page = loginPage.executeLogin(...)`), then call `load()` or wait helpers before asserting.
+
+**Negative / data-driven tests:** use `@Parameters` on the test method and supply values from suite XML — do not hard-code scenario data in the test when the suite drives it.
+
+```java
+@Parameters({"username", "password", "expectedErrorMessage"})
+@Test(groups = {"negative", "regression"})
+public void negativeLoginTest(String username, String password, String expectedErrorMessage) {
+    logger.info("Starting negativeLoginTest");
+    LoginPage loginPage = new LoginPage(driver);
+    loginPage.visit();
+    loginPage.executeLogin(username, password);
+    Assert.assertEquals(loginPage.getErrorMessage(), expectedErrorMessage);
+}
+```
+
+## TestNG groups
+
+Assign groups on `@Test` so suites can filter runs:
+
+| Group | Use for |
+|-------|---------|
+| `smoke` | Critical happy-path checks |
+| `positive` | Valid-input scenarios |
+| `negative` | Invalid-input / error scenarios |
+| `regression` | Full regression coverage |
+
+Exception/feature tests should include at least `regression` when they belong in the default suite.
+
+## Suite XML registration
+
+Every new test must be reachable from a suite under `src/test/resources/TestSuites/`:
+
+- **FullRegressionSuite.xml** — default (`mvn test`); add new coverage here.
+- **SmokeTestingSuite.xml** — runs methods tagged `smoke` via `<groups><run><include name="smoke"/></run></groups>`.
+- **DebugSuite.xml** — single-method runs during development; use `<methods><include name="methodName"/></methods>`.
+
+Patterns from existing suites:
+
+```xml
+<!-- Browser per <test> block; defaults to chrome in BaseTest if omitted -->
+<parameter name="browser" value="chromeheadless"/>
+
+<!-- Negative login: one <test> block per scenario -->
+<parameter name="username" value="incorrectusername"/>
+<parameter name="password" value="password123"/>
+<parameter name="expectedErrorMessage" value="Your username is invalid!"/>
+
+<!-- Run entire class -->
+<class name="com.practicetestautomation.tests.exceptions.ExceptionTests"/>
+
+<!-- Run one method (debug) -->
+<class name="com.practicetestautomation.tests.exceptions.ExceptionTests">
+  <methods><include name="ElementNotInteractableExceptionTest"/></methods>
+</class>
+```
+
+Valid `browser` values: `chrome`, `firefox`, `chromeheadless`. Unknown values fall back to Chrome.
+
+## Do / don't
+
+| Do | Don't |
+|----|-------|
+| Keep locators and waits in page objects | Put `By` strings or Selenium calls in tests |
+| Use page object action/query methods | Add WebDriverManager, Allure, Cucumber, or extra test frameworks |
+| Register tests in suite XML | Leave orphan test methods unrunnable via Maven |
+| Match existing spacing/style in neighboring tests | Over-abstract with base test classes or helpers |
+
+## Checklist for a new test
+
+1. Page object exists in `baseobjects/` (create it first if missing).
+2. Test class in `tests/<feature>/`, extends `BaseTest`.
+3. Method has `@Test` with appropriate `groups`.
+4. Uses `logger.info` at start; assertions via TestNG `Assert`.
+5. Added to `FullRegressionSuite.xml` (and `SmokeTestingSuite.xml` if `smoke`).
+6. Run locally: `mvn test -DsuiteXmlFile=DebugSuite.xml` while iterating, then full suite.
