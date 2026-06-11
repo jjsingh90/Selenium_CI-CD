@@ -38,6 +38,7 @@ public class BaseTest {
                 options.addArguments("--disable-dev-shm-usage");
                 options.addArguments("--window-size=1920,1080");
                 driver= new ChromeDriver(options);
+                break;
 
             default:
                 logger.warning("Configuration for " + browser + " is missing, so running tests in Chrome by default");
